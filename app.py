@@ -1,3 +1,4 @@
+import os
 from flask import Flask, request, jsonify
 from models import db, Album, Review
 from config import Config
@@ -118,5 +119,5 @@ def add_album():
 ####i need release date and i need to input for models a tracklist to the album
 
 
-if __name__ == '__main__':
-    app.run(debug=True)
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
