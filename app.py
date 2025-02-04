@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS  # Import CORS
 from models import db, Album, Review
 from config import Config
+import os
 from fetchalbums import (
     search_album_by_title_and_artist,
     extract_release_numbers,
