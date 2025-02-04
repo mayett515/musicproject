@@ -1,5 +1,5 @@
-import os
 from flask import Flask, request, jsonify
+from flask_cors import CORS  # Import CORS
 from models import db, Album, Review
 from config import Config
 from fetchalbums import (
@@ -10,19 +10,20 @@ from fetchalbums import (
     d,
     get_release_year
 )
-"""ill need flask-migrate as it works seemlessy with flask-sqlalchemy (its alembic)"""
+
 app = Flask(__name__)
 app.config.from_object(Config)
 
+# Enable CORS for all routes
+CORS(app)
+
 db.init_app(app)
 
-# Initialize the database tables // should only be used during developement or testing, in production migrations
-##flask-migrate are typically used to manage database schemas
+# Initialize the database tables
 with app.app_context():
     db.create_all()
 
 # Routes for albums
-"""this only does order by rating in the params so later there will be ordered by date included"""
 @app.route('/api/albums', methods=['GET'])
 def get_albums():
     order_by = request.args.get('orderBy', 'rating')
@@ -33,17 +34,10 @@ def get_albums():
         albums = Album.query.join(Review, Review.album_id == Album.id) \
             .add_columns(Album.id, Album.title, Album.artist, Album.release_date, db.func.avg(Review.rating).label("avg_rating")) \
             .group_by(Album.id).order_by(db.desc("avg_rating")).all()
-    else:  # order_by == 'release_date'
+    else:
         albums = Album.query.order_by(Album.release_date.desc()).all()
 
     return jsonify([album.to_dict() for album in albums])
-
-
-"""The rating-based query looks good, but be aware that if an album has no reviews, it won't appear in the results due to the join(). You might want to use outerjoin() if you want to include albums without reviews.
-
-Error Handling:
-Your error handling is basic but functional. Consider adding more detailed error responses and potential exception handling."""
-
 
 @app.route('/api/albums/<int:album_id>', methods=['GET'])
 def get_album_by_id(album_id):
@@ -52,7 +46,6 @@ def get_album_by_id(album_id):
         return jsonify({"error": "Album not found"}), 404
     return jsonify(album.to_dict())
 
-# Routes for reviews
 @app.route('/api/reviews', methods=['POST'])
 def create_review():
     data = request.json
@@ -93,13 +86,10 @@ def add_album():
     try:
         search_results = search_album_by_title_and_artist(title, artist)
         release_id = extract_release_numbers(search_results)
-        #release = d.release(release_id)
-        #release_year = get_release_year(release_id)
 
         # Extract details
         album_cover = fetch_image_url_by_getting_discogs_id(release_id)
-        release_date = get_release_year(release_id) or None #makes sure that release date is none when none therey
-
+        release_date = get_release_year(release_id) or None
 
         # Add to the database
         album = Album(
@@ -115,9 +105,6 @@ def add_album():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
-####i need release date and i need to input for models a tracklist to the album
-
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
