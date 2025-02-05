@@ -68,10 +68,11 @@ def fetch_image_urls(data: dict) -> list[str]:
 """function to fetch the albums url"""
 
 
-def fetch_image_url_by_getting_discogs_id(discogsid: int) -> Optional[ImageUrl]:
-    release_image = d.release(discogsid).images[0]
-    ImageUrl = fetch_image_urls(release_image)
-    return ImageUrl
+def fetch_image_url_by_getting_discogs_id(discogsid: int) -> Optional[str]:
+    release = d.release(discogsid)
+    if release.images:
+        return release.images[0].uri
+    return None
 
 
 
