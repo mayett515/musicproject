@@ -71,7 +71,7 @@ def fetch_image_urls(data: dict) -> list[str]:
 def fetch_image_url_by_getting_discogs_id(discogsid: int) -> Optional[str]:
     release = d.release(discogsid)
     if release.images:
-        return release.images[0].uri
+        return release.images[0].url
     return None
 
 
