@@ -78,21 +78,19 @@ def add_album():
     if not title or not artist:
         return jsonify({"error": "Title and artist are required"}), 400
 
-    # Check if the album already exists
     existing_album = Album.query.filter_by(title=title, artist=artist).first()
     if existing_album:
         return jsonify({"error": "Album already exists"}), 409
 
-    # Use the Discogs API to search for the album
     try:
         search_results = search_album_by_title_and_artist(title, artist)
         release_id = extract_release_numbers(search_results)
-
+        
         # Extract details
         album_cover = fetch_image_url_by_getting_discogs_id(release_id)
-        release_date = get_release_year(release_id) or None
+        release_date = get_release_year(release_id)
 
-        # Add to the database
+        # Add to database
         album = Album(
             title=title,
             artist=artist,
@@ -102,7 +100,14 @@ def add_album():
         db.session.add(album)
         db.session.commit()
 
-        return jsonify(album.to_dict()), 201
+        # Return complete album object
+        return jsonify({
+            'id': album.id,
+            'title': album.title,
+            'artist': album.artist,
+            'release_date': album.release_date,
+            'album_cover': album.album_cover
+        }), 201
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
