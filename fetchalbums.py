@@ -109,7 +109,7 @@ def generate_track_dict(tracks: list) -> dict[int, str]:
 
 def get_release_year(album_id: int) -> int:
 
-    release_year = d.release(only_number_for_test).year
+    release_year = d.release(album_id).year
     return release_year
 
 
