@@ -1,8 +1,9 @@
 from flask_sqlalchemy import SQLAlchemy
 import typing
+
 db = SQLAlchemy()
 
-class Album(db.Model): #dbmodel being base class that all ormmodels inherit from
+class Album(db.Model):
     __tablename__ = "albums"
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(255), nullable=False)
@@ -18,7 +19,6 @@ class Album(db.Model): #dbmodel being base class that all ormmodels inherit from
             "release_date": self.release_date,
             "album_cover": self.album_cover,
         }
-
 
 class Review(db.Model):
     __tablename__ = "reviews"
