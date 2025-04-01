@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify
-from flask_cors import CORS  # Import CORS
+from flask_cors import CORS
 from models import db, Album, Review
 from config import Config
 import os
@@ -33,12 +33,24 @@ def get_albums():
 
     if order_by == 'rating':
         albums = Album.query.join(Review, Review.album_id == Album.id) \
-            .add_columns(Album.id, Album.title, Album.artist, Album.release_date, db.func.avg(Review.rating).label("avg_rating")) \
+            .add_columns(
+                Album.id,
+                Album.title,
+                Album.artist,
+                Album.release_date,
+                db.func.avg(Review.rating).label("avg_rating")
+            ) \
             .group_by(Album.id).order_by(db.desc("avg_rating")).all()
+
+        result = []
+        for album in albums:
+            album_dict = album[0].to_dict()
+            album_dict['average_rating'] = float(album[1]) if album[1] is not None else None
+            result.append(album_dict)
+        return jsonify(result)
     else:
         albums = Album.query.order_by(Album.release_date.desc()).all()
-
-    return jsonify([album.to_dict() for album in albums])
+        return jsonify([album.to_dict() for album in albums])
 
 @app.route('/api/albums/<int:album_id>', methods=['GET'])
 def get_album_by_id(album_id):
