@@ -31,26 +31,34 @@ def get_albums():
     if order_by not in ['rating', 'release_date']:
         return jsonify({"error": "Invalid orderBy parameter"}), 400
 
+    # Get all albums first
+    all_albums = Album.query.all()
+    result = []
+    
+    # For each album, calculate the average rating from its reviews
+    for album in all_albums:
+        album_dict = album.to_dict()
+        reviews = Review.query.filter_by(album_id=album.id).all()
+        
+        if reviews:
+            # Calculate the average rating if there are reviews
+            avg_rating = sum(review.rating for review in reviews) / len(reviews)
+            album_dict['average_rating'] = round(avg_rating, 1)  # Round to 1 decimal place
+        else:
+            # No reviews yet
+            album_dict['average_rating'] = None
+            
+        result.append(album_dict)
+    
+    # Sort based on the requested order
     if order_by == 'rating':
-        albums = Album.query.join(Review, Review.album_id == Album.id) \
-            .add_columns(
-                Album.id,
-                Album.title,
-                Album.artist,
-                Album.release_date,
-                db.func.avg(Review.rating).label("avg_rating")
-            ) \
-            .group_by(Album.id).order_by(db.desc("avg_rating")).all()
-
-        result = []
-        for album in albums:
-            album_dict = album[0].to_dict()
-            album_dict['average_rating'] = float(album[1]) if album[1] is not None else None
-            result.append(album_dict)
-        return jsonify(result)
-    else:
-        albums = Album.query.order_by(Album.release_date.desc()).all()
-        return jsonify([album.to_dict() for album in albums])
+        # Sort by average_rating (None values last)
+        result.sort(key=lambda x: (x['average_rating'] is None, -1 if x['average_rating'] is None else -x['average_rating']))
+    else:  # order_by == 'release_date'
+        # Sort by release_date (None values last)
+        result.sort(key=lambda x: (x['release_date'] is None, '' if x['release_date'] is None else x['release_date']), reverse=True)
+        
+    return jsonify(result)
 
 @app.route('/api/albums/<int:album_id>', methods=['GET'])
 def get_album_by_id(album_id):
@@ -67,8 +75,16 @@ def create_review():
     rating = data.get("rating")
     album_id = data.get("album_id")
 
-    if not all([title, body, rating, album_id]):
+    if not all([title, body, rating is not None, album_id]):
         return jsonify({"error": "Missing required fields"}), 400
+
+    # Ensure rating is an integer between 1-5
+    try:
+        rating = int(rating)
+        if rating < 1 or rating > 5:
+            return jsonify({"error": "Rating must be between 1 and 5"}), 400
+    except (ValueError, TypeError):
+        return jsonify({"error": "Rating must be a number between 1 and 5"}), 400
 
     review = Review(title=title, body=body, rating=rating, album_id=album_id)
     db.session.add(review)
